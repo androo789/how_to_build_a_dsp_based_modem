@@ -16,33 +16,17 @@
 //       如果不是为了降低功耗，不建议修改这个值，它会影响所有相关外设的时钟频率
 
 
-
-
 #include "hw_syscfg0_C6748.h"       // 系统配置模块寄存器
-
-
-
 #include "gpio.h"                   // 通用输入输出口宏及设备抽象层函数声明
 #include "timer.h"                  // 通用输入输出口宏及设备抽象层函数声明
 #include "interrupt.h"              // DSP C6748 中断相关应用程序接口函数声明及系统事件号定义
-
-
-
 #include "TL6748.h"                 // 创龙 DSP6748 开发板相关声明
-
 #include "hw_types.h"				 // 宏命令
-
 #include "soc_C6748.h"			     // DSP C6748 外设寄存器
-
 #include "psc.h"                    // 电源与睡眠控制宏及设备抽象层函数声明
 #include "spi.h"                    // 串行外设接口宏及设备抽象层函数声明
-
-
 #include "uartStdio.h"              // 串口标准输入输出终端函数声明
-
-
 #include <string.h>
-
 #include "dongqi.h"
 /****************************************************************************/
 /*                                                                          */
@@ -61,9 +45,9 @@ static unsigned int   TMR_PERIOD_LSB32=0;
 /// XXX 228000000就是定时的目标时间,就是456Mhz的2分频，
 // 高32位 0
 #define TMR_PERIOD_MSB32  (0)
-#define spishizhong  300000
+#define spishizhong  3000000
 //理论是最好30M的，da芯片与dsp的通信频率。但是那样可能就不稳了
-#define dingshipinlv 10000
+#define dingshipinlv 23000
 /****************************************************************************/
 /*                                                                          */
 /*              全局变量                                                    */
@@ -151,14 +135,6 @@ int k=0;
 /****************************************************************************/
 int main(void)
 {
-//	int i;
-//	//  10个每周期100点的正弦波
-//	for ( i = 0; i < 100; i++)
-//	{
-//		sine_wave[i] = (32767 * sin(i*0.0628) + 32767) / 2;  //0.0628318 100点
-//	}
-
-
 		int i;
 		unsigned int SamplingRate;
 		for ( i = 0; i < 100; i++)
@@ -173,10 +149,7 @@ int main(void)
 	// 外设使能配置
 	PSCInit();
 	
-	// 初始化串口终端 使用串口2
-//	UARTStdioInit();
 
-//	UARTPuts("Tronlong SPI DAC Application......\r\n", -1);
 
 	// GPIO 管脚复用配置
 	GPIOBankPinMuxSet();
@@ -201,6 +174,12 @@ int main(void)
 
 	// DAC 初始化
 	DACInit();
+
+	DACReg.CFG.RW = 0;              // 写
+	DACReg.CFG.ZERO = 0;            // 恒为 0
+	DACReg.CFG.REG = 0;             // 寄存器选择 DAC 寄存器
+	DACReg.CFG.Addr = 4;            // 通道选择   A通道
+//	DACReg.Data = 0x4cc0;           // 数据
 
 	//XXX 定时器 / 计数器中断初始化.,这句话是不是应该放在主循环的最后面？
 	TimerInterruptInit();
@@ -380,7 +359,7 @@ void DACInit(void)
 	DACReg.CFG.ZERO = 0;            // 恒为 0
 	DACReg.CFG.REG = 2;             // 寄存器选择 电源控制寄存器
 	DACReg.CFG.Addr = 0;            // 通道选择   无
-	DACReg.Data = 0x000F;           // 数据       4 通道上电
+	DACReg.Data = 0x0001;           // 数据       4 通道上电
 	tx_len = 3;
 	memcpy(&tx_data, &DACReg, 3);
 	SpiTransfer();
@@ -406,148 +385,13 @@ void DACOutput(unsigned short tongdaoashuju)
 	// 拉低 LDAC 管脚
     GPIOPinWrite(SOC_GPIO_0_REGS, 111, GPIO_PIN_LOW);
 	// DAC寄存器 VoutA = 3V
-	DACReg.CFG.RW = 0;              // 写
-	DACReg.CFG.ZERO = 0;            // 恒为 0
-	DACReg.CFG.REG = 0;             // 寄存器选择 DAC 寄存器
-	DACReg.CFG.Addr = 4;            // 通道选择   A通道
-//	DACReg.Data = 0x4cc0;           // 数据
+
 
 	DACReg.Data = tongdaoashuju;           // 数据
 	tx_len = 3;//3是不是代表数据长度，这里就是指4cc
 	memcpy(&tx_data, &DACReg, 3);
 	SpiTransfer();
-//	Delay(0xf);
-//
-//	// DAC寄存器 VoutB = 5V
-//	DACReg.CFG.RW = 0;              // 写
-//	DACReg.CFG.ZERO = 0;            // 恒为 0
-//	DACReg.CFG.REG = 0;             // 寄存器选择 DAC 寄存器
-//	DACReg.CFG.Addr = 1;            // 通道选择   B通道
-//	DACReg.Data = 0x7ff0;           // 数据
-//	tx_len = 3;
-//	memcpy(&tx_data, &DACReg, 3);
-//	SpiTransfer();
-//	Delay(0xf);
-//
-//	// DAC寄存器 VoutC = 7V
-//	DACReg.CFG.RW = 0;              // 写
-//	DACReg.CFG.ZERO = 0;            // 恒为 0
-//	DACReg.CFG.REG = 0;             // 寄存器选择 DAC 寄存器
-//	DACReg.CFG.Addr = 2;            // 通道选择   C通道
-//	DACReg.Data = 0xb320;           // 数据
-//	tx_len = 3;
-//	memcpy(&tx_data, &DACReg, 3);
-//	SpiTransfer();
-//	Delay(0xf);
-//
-//	// DAC寄存器 VoutD = 10V
-//	DACReg.CFG.RW = 0;              // 写
-//	DACReg.CFG.ZERO = 0;            // 恒为 0
-//	DACReg.CFG.REG = 0;             // 寄存器选择 DAC 寄存器
-//	DACReg.CFG.Addr = 3;            // 通道选择   D通道
-//	DACReg.Data = 0xfff0;           // 数据
-//	tx_len = 3;
-//	memcpy(&tx_data, &DACReg, 3);
-//	SpiTransfer();
-//	Delay(0xf);
-////XXX 输出数据告一段落
-//	// 读 DAC 寄存器
-//	DACReg.CFG.RW = 1;              // 读
-//	DACReg.CFG.ZERO = 0;            // 恒为 0
-//	DACReg.CFG.REG = 0;             // 寄存器选择  DAC 寄存器
-//	DACReg.CFG.Addr = 0;            // 通道选择    A 通道
-//	DACReg.Data = 0;                // 数据
-//	tx_len = 3;
-//	memcpy(&tx_data, &DACReg, 3);
-//	SpiTransfer();
-//	Delay(0xf);
-//
-//	// 写控制寄存器  NOP  读回通道数据
-//	UARTPuts("Read From DAC : \r\n", -1);
-//    int ReceiveData = 0;
-//	DACReg.CFG.RW = 0;              // 写
-//	DACReg.CFG.ZERO = 0;            // 恒为 0
-//	DACReg.CFG.REG = 3;             // 寄存器选择
-//	DACReg.CFG.Addr = 0;            // 通道选择   无
-//	DACReg.Data = 0;                // 数据
-//	tx_len = 3;
-//	memcpy(&tx_data, &DACReg, 3);
-//	ReceiveData = SpiTransfer();
-//	Delay(0xf);
-//
-//	UARTprintf("CH A = 0x%x\r\n",ReceiveData);
-//
-//	// 读 DAC 寄存器
-//	DACReg.CFG.RW = 1;              // 读
-//	DACReg.CFG.ZERO = 0;            // 恒为 0
-//	DACReg.CFG.REG = 0;             // 寄存器选择  DAC 寄存器
-//	DACReg.CFG.Addr = 1;            // 通道选择    B 通道
-//	DACReg.Data = 0;                // 数据
-//	tx_len = 3;
-//	memcpy(&tx_data, &DACReg, 3);
-//	SpiTransfer();
-//	Delay(0xf);
-//
-//	// 写控制寄存器  NOP  读回B通道数据
-//	DACReg.CFG.RW = 0;              // 写
-//	DACReg.CFG.ZERO = 0;            // 恒为 0
-//	DACReg.CFG.REG = 3;             // 寄存器选择
-//	DACReg.CFG.Addr = 0;            // 通道选择   无
-//	DACReg.Data = 0;                // 数据
-//	tx_len = 3;
-//	memcpy(&tx_data, &DACReg, 3);
-//	ReceiveData = SpiTransfer();
-//	Delay(0xf);
-//
-//	UARTprintf("CH B = 0x%x\r\n",ReceiveData);
-//
-//	// 读 DAC 寄存器
-//	DACReg.CFG.RW = 1;              // 读
-//	DACReg.CFG.ZERO = 0;            // 恒为 0
-//	DACReg.CFG.REG = 0;             // 寄存器选择  DAC 寄存器
-//	DACReg.CFG.Addr = 2;            // 通道选择    C 通道
-//	DACReg.Data = 0;                // 数据
-//	tx_len = 3;
-//	memcpy(&tx_data, &DACReg, 3);
-//	SpiTransfer();
-//	Delay(0xf);
-//
-//	// 写控制寄存器  NOP  读回B通道数据
-//	DACReg.CFG.RW = 0;              // 写
-//	DACReg.CFG.ZERO = 0;            // 恒为 0
-//	DACReg.CFG.REG = 3;             // 寄存器选择
-//	DACReg.CFG.Addr = 0;            // 通道选择   无
-//	DACReg.Data = 0;                // 数据
-//	tx_len = 3;
-//	memcpy(&tx_data, &DACReg, 3);
-//	ReceiveData = SpiTransfer();
-//	Delay(0xf);
-//
-//	UARTprintf("CH C = 0x%x\r\n",ReceiveData);
-//
-//	// 读 DAC 寄存器
-//	DACReg.CFG.RW = 1;              // 读
-//	DACReg.CFG.ZERO = 0;            // 恒为 0
-//	DACReg.CFG.REG = 0;             // 寄存器选择  DAC 寄存器
-//	DACReg.CFG.Addr = 3;            // 通道选择    D 通道
-//	DACReg.Data = 0;                // 数据
-//	tx_len = 3;
-//	memcpy(&tx_data, &DACReg, 3);
-//	SpiTransfer();
-//	Delay(0xf);
-//
-//	// 写控制寄存器  NOP  读回B通道数据
-//	DACReg.CFG.RW = 0;              // 写
-//	DACReg.CFG.ZERO = 0;            // 恒为 0
-//	DACReg.CFG.REG = 3;             // 寄存器选择
-//	DACReg.CFG.Addr = 0;            // 通道选择   无
-//	DACReg.Data = 0;                // 数据
-//	tx_len = 3;
-//	memcpy(&tx_data, &DACReg, 3);
-//	ReceiveData = SpiTransfer();
-//	Delay(0xf);
-//
-//	UARTprintf("CH D = 0x%x\r\n",ReceiveData);
+
 }
 /****************************************************************************/
 /*                                                                          */
@@ -616,16 +460,7 @@ void TimerIsr(void)
     IntEventClear(SYS_INT_T64P2_TINTALL);
     TimerIntStatusClear(SOC_TMR_2_REGS, TMR_INT_TMR12_NON_CAPT_MODE);
 
-    // 改变 LED 状态
-//    GPIOPinWrite(SOC_GPIO_0_REGS, 109, flag);
-//    Flag=!Flag;
-//    flag=1;
-//    GPIOPinWrite(SOC_GPIO_0_REGS, 110, flag);
 
-//    dongflag++;
-//    if(dongflag == 2){
-//    	dongflag =0;
-//    }
     if(flag ==0){
     	DACOutput(lingyiceshi[flag]);
         flag = 1;
@@ -641,13 +476,4 @@ void TimerIsr(void)
 }
 
 
-/****************************************************************************/
-/*                                                                          */
-/*              指令时钟方法延时                                            */
-/*                                                                          */
-/****************************************************************************/
-//void Delay(volatile unsigned int delay)
-//{
-//    while(delay--);
-//}
 
